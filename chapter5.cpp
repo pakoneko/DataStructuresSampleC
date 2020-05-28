@@ -227,6 +227,7 @@ void EnQueue(struct  Queue *Q, int data)
     Push(Q->S1, data);
 }
 
+
 //时间复杂度O(1)
 
 //出列如果栈S2不为空，那么从S2中弹出并返回栈顶元素

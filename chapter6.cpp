@@ -2145,6 +2145,28 @@ struct AVLTreeNode *Insert(struct AVLTreeNode *root, struct AVLTreeNode *parent,
     return root;
 }
 
+//Q72（第五版） 给定一棵具有n个结点的BST， 每个结点r可以有一个额外的值域 r->size
+//基于r结点子树的键值个数(包含根结点r)，给定一个O(h)算法GreaterthanConstant(r, k)，h为BST的高度，找到严格大于k的键值的数量
+int GreaterthanConstant(struct BinarySearchTreeNode *r, int k)
+{
+    int keysCount = 0;
+    while (r != NULL)
+    {
+        if (k < r->data)
+        {
+            keysCount = keysCount + r->right->size + 1;
+            r = r->left;
+        }
+        else if (k > r->data)
+            r = r->right;
+        else
+        {
+            keysCount = keysCount + r->right->size;
+            break;
+        }
+    }
+    return keysCount;
+}
 //Q72 给定高度h， 创建HB(0)算法
 //HB(0)满二叉树，高度h满二叉树结点 2^(h+1) - 1 假设具有一个结点的树高度=0，结点可以从1~(2^(h+1) - 1)编号
 //TC :O(n) ,SC: O(logn) logn表示栈最大大小 值等于树的高度
@@ -2243,7 +2265,14 @@ int RangeCount(struct AVLTreeNode *root, int a, int b)
 }
 
 //Q79 BST/AVL树 其中每个结点包含2个数据元素，它的值和它子树结点个数 用中序遍历前驱结点值替换结点的第二个数据的方式 转换为另外一棵BST，每个结点合并中序前驱结点值
+/*
+        6|6                                     6|5
+    4|2      9|2             =>             4|2      9|-
+2|0    5|0 7|1                                     7|8
+               8|0
+*/
 //最简单方法层次遍历，时间O(nlogn)空间O(n)
+
 struct BinarySearchTree *TreeCompression(struct BinarySearchTree *root)
 {
     struct BinarySearchTree *temp, *temp2;
@@ -2256,14 +2285,258 @@ struct BinarySearchTree *TreeCompression(struct BinarySearchTree *root)
         temp = DeQueue(Q);
         if (temp->left && temp->right && temp->left->data2 > temp->right->data2)
             temp2 = FindMax(temp);
-        else temp2 = FindMin(temp);
+        else
+            temp2 = FindMin(temp);
         temp->data2 = temp2->data2 //处理当前结点
-        //删除结点temp2
-        DeleteNodeInBST(temp2);
-        if(temp->left)
+                          //删除结点temp2
+                          DeleteNodeInBST(temp2);
+        if (temp->left)
             EnQueue(Q, temp->left);
-        if(temp->right)
+        if (temp->right)
             EnQueue(Q, temp->right);
     }
     DeleteQueue(Q);
 }
+
+//Q80 降低Q79的复杂度 中序遍历 时O(n)空O(1) 需要递归堆栈
+struct BinarySearchTreeNode *TreeCompression(struct BinarySearchTreeNode *root, int *previousNodeData)
+{
+    if (!root)
+        return NULL;
+    TreeCompression(root->left, previousNodeData); //LDR先遍历L
+    if (*previousNodeData == INT_MIN)
+    {
+        *previousNodeData = root->data; //记录当前遍历到的数据
+        free(root);
+    }
+    if (*previousNodeData != INT_MIN)
+    { //处理当前结点
+        root->data2 = previousNodeData;
+        *previousNodeData = INT_MIN;
+    }
+    return TreeCompression(root->right, previousNodeData);
+}
+
+//81 给一个BST和一个键值，找出值与给定键值最接近的元素
+//层次遍历 对每个节点计算键值和结点值的差值，如果差值小于已保存最小差值，用新的最小值更新保存的最小差值遍历结束得到结果
+//时间复杂度O(n) 空间复杂度O(n)
+int ClosestInBST(struct BinaryTreeNode *root, int key)
+{
+    struct BinaryTreeNode *temp, *element;
+    struct Queue *Q;
+    int difference = INT_MAX;
+    if (!root)
+        return 0;
+    Q = CreateQueue();
+    EnQueue(Q, root);
+    while (!IsEmptyQueue(Q))
+    {
+        temp = DeQueue(Q);
+        if (difference > (abs(temp->data - key)))
+        {
+            difference = abs(temp->data - key);
+            element = temp;
+        }
+        if (temp->left)
+            EnQueue(Q, temp->left);
+        if (temp->right)
+            EnQueue(Q, temp->right);
+    }
+    DeleteQueue(Q);
+    return element->data;
+}
+
+//Q82用递归方法求解
+//类似Q18
+struct BinaryTreeNode *ClosestInBST(struct BinaryTreeNode *root, int key)
+{
+    struct BinaryTreeNode *temp;
+    if (root = NULL)
+        return root;
+    if (root->data == key)
+        return root;
+    if (key < root->data)
+    {
+        if (!root->left)
+            return root;
+        temp = ClosestInBST(root->left, key); //左子树递归遍历
+        return abs(temp->data - key) > abs(root->data - key) ? root : temp;
+    }
+    else
+    {
+        if (!root->right)
+            return root;
+        temp = ClosestInBST(root->right, key);
+        return abs(temp->data - key) > abs(root->data - key) ? root : temp;
+    }
+    return NULL;
+}
+
+//Q83 无限整数序列的中位数
+//中位数是有序序列中间位置上的元素（如果序列为奇数个）如果偶数元素，中位数是中间两个元素的平均值
+/*
+BST每个结点左右子树结点数求解 时间O(logn)
+使用平衡二叉搜索树，用左子树结点个数减去右子树结点个数，平衡因子为1 或0 奇数个数根节点为中位数，偶数个数中位数是根节点和中序后继结点（右子树最左下结点）平均值
+插入并平衡调整平衡二叉搜索树，插入时间O(logn)查找中位数时间O(1)
+参考第七章
+*/
+//Q84 给定一棵二叉树 消除所有半结点（只拥有一个孩子的结点）不碰叶子
+//LRD后序遍历
+//没看懂书里的内容，消除操作在哪？
+struct BinaryTreeNode *removeHalfNodes(struct BinaryTreeNode *root)
+{
+    if (!root)
+        return NULL;
+    root->left = removeHalfNodes(root->left);
+    root->right = removeHalfNodes(root->right);
+    if (root->left == NULL && root->right == NULL)
+        return root;
+    if (root->left == NULL)
+        return root->right;
+    if (root->right == NULL)
+        return root->left;
+    return root;
+}
+
+//Q85 消除给定二叉树的叶子结点
+//时间复杂度O(n)
+struct BinaryTreeNode *removeLeaves(struct BinaryTreeNode *root)
+{
+    if (root != NULL)
+    {
+        if (root->left == NULL && root->right == NULL)
+        {
+            free(root);
+            return NULL;
+        }
+        else
+        {
+            root->left = removeLeaves(root->left);
+            root->right = removeLeaves(root->right);
+        }
+    }
+    return root;
+}
+
+//Q86 给定BST和两个整数，（最小和最大整数）作为参数，从树中删除不在两个整数参数限定范围内的元素
+//LRD后序遍历， 子树改变影响双亲结点
+//同样的 这个算法什么都没做，作者偷懒
+//最坏O(n) 平均O(logn)
+//如果给定BST是AVL树，那么O(n)为平均时间复杂度
+struct BinarySearchTreeNode *PruneBST(struct BinarySearchTreeNode *root, int A, int B)
+{
+    if (!root)
+        return NULL;
+    root->left = PruneBST(root->left, A, B);
+    root->right = PruneBST(root->right, A, B);
+    if (A <= root->data && root->data <= B)
+        return root;
+    if (root->data < A)
+        return root->right;
+    if (root->data > B)
+        return root->left;
+}
+
+//Q87 给定二叉树 连接同层所有相邻结点 每个结点有next和左右子指针
+struct BinaryTreeNode
+{
+    int data;
+    struct BinaryTreeNode *left;
+    struct BinaryTreeNode *right;
+    struct BinaryTreeNode *next;
+};
+
+//简单方法 层次遍历更新next指针 遍历过程中链接下一层结点 如果结点有左右孩子则左孩子链接到右孩子 如果结点有next结点将当前结点最右孩子链接到next结点最左孩子
+//时间复杂度
+void linkingNodesOfSameLevel(struct BinaryTreeNode *root)
+{
+    struct Queue *Q = CreateQueue();
+    struct BinaryTreeNode *prev;
+    struct BinaryTreeNode *temp;
+    int currentLevelNodeCount, nextLevelNodeCount;
+    if (!root)
+        return;
+    EnQueue(Q, root);
+    currentLevelNodeCount = 1;
+    nextLevelNodeCount = 0;
+    prev = NULL;
+    while (!IsEmptyQueue(Q))
+    {
+        temp = DeQueue(Q);
+        if (temp->left)
+        {
+            EnQueue(Q, temp->left);
+            nextLevelNodeCount++;
+        }
+        if (temp->right)
+        {
+            EnQueue(Q, temp->right);
+            nextLevelNodeCount++;
+        }
+        //将当前层的前一个结点链接到该结点
+        if (prev)
+            prev->next = temp;
+        prev = temp;
+        currentLevelNodeCount--;
+        if (currentLevelNodeCount == 0)
+        { //如果这是当前层的最后一个结点
+            currentLevelNodeCount = nextLevelNodeCount;
+            nextLevelNodeCount = 0;
+            prev = NULL;
+        }
+    }
+}
+
+//Q88 降低87复杂度 逐层处理，处理下一层结点时确定当前层结点完成链接
+//时间O(n) 空间O(树的深度) 用于递归堆栈
+void linkingNodesOfSameLevel(struct BinaryTreeNode *root)
+{
+    if (!root)
+        return;
+    struct BinaryTreeNode *rightMostNode = NULL, *nextHead = NULL, *temp = root; //rightMostNode 当前最右结点， nextHead 下一层的头结点
+    //链接当前根节点层的下一层
+    while (temp != NULL)
+    {
+        if (temp->left != NULL) //处理左子树
+        {
+            if (rightMostNode == NULL) //设立最右结点指针
+            {
+                rightMostNode = temp->left;
+                nextHead = temp->left;
+            }
+            else
+            {
+                rightMostNode->next = temp->left;    //最右结点和左子结点链接
+                rightMostNode = rightMostNode->next; //指向同层下一个结点
+            }
+        }
+        if (temp->right != NULL)
+        {
+            if (rightMostNode == NULL)
+            {
+                rightMostNode = temp->right;
+                nextHead = temp->right;
+            }
+            else
+            {
+                rightMostNode->next = temp->right; //最右结点和右子结点链接
+                rightMostNode = rightMostNode->next;
+            }
+            temp = temp->next;
+        }
+    }
+    linkingNodesOfSameLevel(nextHead);
+}
+
+//增强树查找第K小元素操作定义
+struct BinarySearchTreeNode *KthSmallest(struct BinarySearchTreeNode *X, int K)
+{
+    int r = size(X->left) + 1;
+    if (K == r)
+        return X;
+    if (K < r)
+        return KthSmallest(X->left, K);
+    if (K > r)
+        return KthSmallest(X->right, K - r);
+}
+

@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <algorithm>
+using namespace std;
 
 //无序线性搜索 O(n) O(1)
 int UnOrderdLinearSearch(int A[], int n, int data)
@@ -663,6 +665,209 @@ int Solution(int A[], int n)
 //递减右索引 直到遇到偶数
 //如果left<right 交换A[left]和A[right]
 
-void DutchNationalFlag(int A[], int n){
+void DutchNationalFlag(int A[], int n)
+{
     //初始化left 和right两个索引变量
+    int left = 0, right = n - 1;
+    while (left < right)
+    {
+        //持续增加left索引,直到在左边遇到奇数
+        while (A[left] % 2 == 0 && left < right)
+            left++;
+        //持续减少right索引,直到在右边遇到偶数
+        while (A[right] % 2 == 1 && left < right)
+            right--;
+        if (left < right)
+        {
+            //交换A[left]和A[right]
+            swap(&A[left], &A[right]);
+            left++;
+            right--;
+        }
+    }
+}
+
+//Q68 在数组中分离0元素和1元素
+//0在左侧1在右侧 只遍历一次 输入[0,1,0,1,0,0,1,1,1,0] 输出 [0,0,0,0,0,1,1,1,1,1]
+//一次扫描
+void Separate0and1(int A[], int n)
+{
+    //初始化left 和right两个索引变量
+    int left = 0, right = n - 1;
+    while (left < right)
+    {
+        //持续增加left索引,直到在左边遇到1
+        while (A[left] == 0 && left < right)
+            left++;
+        //持续减少right索引,直到在右边遇到0
+        while (A[right] == 1 && left < right)
+            right--;
+        //如果left小于right 则左边有一个1,右边有一个0,交换A[left]和A[right]
+        if (left < right)
+        {
+            //交换A[left]和A[right]
+            A[left] = 0;
+            A[right] = 1;
+            left++;
+            right--;
+        }
+    }
+}
+
+//Q70 对包含若干0 若干1 若干2的数组排序(OR RGB元素)
+void Sorting012sDutchFlagProblem(int A[], int n)
+{
+    int low = 0, mid = 0, high = n - 1;
+    while (mid <= high)
+    {
+        switch (A[mid])
+        {
+        case 0:
+            swap(A[low], A[mid]);
+            low++;
+            mid++;
+            break;
+        case 1:
+            mid++;
+            break;
+        case 2:
+            swap(A[mid], A[high]);
+            high--;
+            break;
+        }
+    }
+}
+//Q73 给定n 求n!尾数为0的个数
+int NumberrOfTrailingZerosInNumber(int n)
+{
+    int i, count = 0;
+    if (n < 0)
+        return -1;
+    for (i = 5; n / i > 0; i *= 5)
+        count += n / i;
+    return count;
+}
+
+//Q74 给定2n个整数数组, a1a2a3...anb1b2b3...bn 修改为a1b2a2b2a3b3...anbn
+//蛮力法2个嵌套循环
+void ShuffleArray()
+{
+    int n = 4;
+    int A[] = {1, 3, 5, 7, 2, 4, 6, 8};
+    for (int i = 0, q = 1, k = n; i < n; i++, k++, q++)
+    {
+        for (int j = k; j > i + q; j--)
+        {
+            int tmp = A[j - 1];
+            A[j - 1] = A[j];
+            A[j] = tmp;
+        }
+    }
+    for (int i = 0; i < 2 * n; i++)
+        printf("%d", A[i]);
+}
+//Q75 分治技术改进Q74
+//分为a1a2a3a4, b1 b2 b3 b4
+//交换中心周围元素
+//a3a4 b1b2 交换 a1a2 b1b2 a3a4 b3b4
+//再次交换每个子数组中心周围元素 a1b1 a2b2  a3b3 a4b4
+
+//Q76给定数组A[] 找到最大的j-i, 使得A[j]>A[i]
+//输入{34,8,10,3,2,80,35,33,1} 输出6(j=7,i=1)
+//O(n²)
+int maxIndexDiff(int A[], int n)
+{
+    int maxDiff = -1;
+    int i, j;
+    for (i = 0; i < n; ++i)
+    {
+        for (j = n - 1; j > i; --j)
+        {
+            if (A[j] > A[i] && maxDiff < (j - i))
+                maxDiff = j - i;
+        }
+    }
+    return maxDiff;
+}
+
+//Q77 改善Q76的复杂度
+//获取A[]2个最优索引, 左索引i和右索引j
+//创造2个数组LeftMins, RightMaxs[] LeftMins[i]持有A[i]左侧的最小元素 RightMaxs[j]是A[j]右侧的最大元素
+//如果LeftMins[i]>RightMaxs[j] LeftMins[] i++,
+int maxIndexDiff(int A[], int n)
+{
+    int maxDiff;
+    int i, j;
+    int *LeftMins = (int *)malloc(sizeof(int) * n);
+    int *RightMaxs = (int *)malloc(sizeof(int) * n);
+    LeftMins[0] = A[0];
+    for (i = 1; i < n; ++i)
+    {
+        LeftMins[i] = __min(A[i], LeftMins[i - 1]); //LeftMins[i]存储最小值
+    }
+    RightMaxs[n - 1] = A[n - 1];
+    for (j = n - 2; j >= 0; --j)
+        RightMaxs[j] = __max(A[j], RightMaxs[j + 1]); //RightMaxs[j]存储最大值
+    i = 0, j = 0, maxDiff = -1;
+    while (j < n && i < n)
+    {
+        if (LeftMins[i] < RightMaxs[j])
+        {
+            maxDiff = __max(maxDiff, j - i);
+            j = j + 1;
+        }
+        else
+        {
+            i = i + 1;
+        }
+    }
+    return maxDiff;
+}
+//Q78 一组元素如何判断列表是否成对有序?如果列表连续两个元素构成的元素对 都是非递减有序的 那么列表认为是成对有序的(pairwise sorted)
+
+int checkPairwiseSorted(int A[], int n)
+{
+    if (n == 0 || n == 1)
+        return 1;
+    for (int i = 0; i < n - 1; i += 2)
+    {
+        if (A[i] > A[i + 1])
+            return 0;
+    }
+    return 1;
+}
+
+//Q79 包含n个元素数组 不使用额外空间情况下打印元素的出现频率 假设都是可编辑小于n的正数
+//取负技术
+void frequencyCounter(int A[], int n) //数组取值范围[1,n] n是数组的大小
+{
+    int pos = 0;
+    while (pos < n)
+    {
+        int expectedPos = A[pos] - 1; //获取A[pos]的值给expectedPos ,-1是表示从0开始计数
+        if (A[pos] > 0 && A[expectedPos] > 0) //这个时候 pos和expectPos存储数组元素的值 不是频率
+        {
+            swap(A[pos], A[expectedPos]); //交换两方的值, 让A[expectedPos]获取到A[pos]的值 而A[pos]存储原来expectedPos的值(为了不使用额外的开销)
+            A[expectedPos] = -1; //A[expectedPos] 计数第一次 用负数1记录频率数
+        }
+        else if (A[pos] > 0) //pos位置的值再次出现且expectedPos的计数<0(也就是有了计数以后A[expectedPos]存了频率)
+        {
+            A[expectedPos]--; //负数的计数增加1
+            A[pos++] = 0; //清空pos的值并进到下一位  也可以写为A[pos] = 0; pos++;
+        }
+        else //在pos没有出现元素就进下一位
+        {
+            pos++;
+        }
+    }
+    for (int i = 0; i < n; ++i)
+    {
+        printf("%d frequency is %d\n", i + 1, abs(A[i])); //使用绝对值打印出所有的频率
+    }
+}
+int main(int argc, char *argv[])
+{
+    int A[] = {10, 10, 9, 4, 7, 6, 5, 2, 3, 2, 1};
+    frequencyCounter(A, sizeof(A) / sizeof(A[0]));
+    return 0;
 }

@@ -791,3 +791,33 @@ void FindMaximumSubMatrix(int[][] A, int n)
         }
     }
 }
+
+//Q45 寻找跳跃到最后一个元素的最佳跳数
+
+#define MAX 0xFFFFFFFE;
+unsigned int jump(int *array, int n)
+{
+    unsigned answer, unsigned int *result = new unsigned int[n];
+    int i, j;
+    //边界条件
+    if (n == 0 || array[0] == 0)
+        return MAX;
+    result[0] = 0; //在第一个元素处不需要跳转
+    for (i = 1; i < n; i++)
+    {
+        result[i] = MAX; //初始化result[i]
+        for (j = 0; j < i; j++)
+        {
+            //检查从j进行跳转是否可能
+            if (array[j] >= (i - j))
+            {
+                //检查是否有更好的解
+                if ((result[j] + 1) < result[i])
+                    result[i] = result[j] + 1; //更新result[i]
+            }
+        }
+    }
+    answer = result[n - 1]; //返回result[n-1]
+    delete[] result;
+    return answer;
+}
